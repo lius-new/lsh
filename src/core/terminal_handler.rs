@@ -1,31 +1,30 @@
-use std::{
-    collections::HashMap,
-    io::{self, Stdout, Write},
-};
+use std::io::{self, Stdout, Write};
 
 use crossterm::{
     event::{read, Event, KeyCode},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{
+        disable_raw_mode, enable_raw_mode, Clear, EnterAlternateScreen, LeaveAlternateScreen,
+    },
     ExecutableCommand,
 };
 
-use super::content_display::ContentDisplay;
+use super::{content_display::ContentDisplay, input_receiver};
 
 pub struct Terminal {
     pub out: Stdout,
-    pub history: HashMap<u32, String>,
+    pub input_receiver: input_receiver::Input,
     pub content_display: ContentDisplay,
 }
 
 impl Terminal {
     pub fn new() -> Self {
         let out = io::stdout();
-        let history = HashMap::new();
+        let input_receiver = input_receiver::Input::new();
         let content_display = ContentDisplay::new();
 
         Self {
             out,
-            history,
+            input_receiver,
             content_display,
         }
     }
@@ -33,44 +32,56 @@ impl Terminal {
     fn run_before(&mut self) -> std::io::Result<()> {
         enable_raw_mode()?;
         self.out.execute(EnterAlternateScreen)?;
+        self.content_display.draw_input_command(&mut self.out, "")?;
         Ok(())
     }
+
     fn run_after(&mut self) -> std::io::Result<()> {
         self.out.execute(LeaveAlternateScreen)?;
+        self.out
+            .execute(Clear(crossterm::terminal::ClearType::All))?;
         disable_raw_mode()?;
         Ok(())
     }
+
     pub fn run(&mut self) -> std::io::Result<()> {
         self.run_before()?;
 
-        // run process
-        let mut history_id = 0;
         loop {
-            history_id += 1;
-            let mut chars = Vec::new();
-
             loop {
                 if let Event::Key(key_event) = read()? {
                     match key_event.code {
                         KeyCode::Enter => {
-                            self.history.insert(history_id, String::from_iter(&chars));
+                            self.input_receiver.insert();
+                            self.content_display.draw_enter(
+                                &mut self.out,
+                                (self.input_receiver.get_index()) as usize,
+                            )?;
                             break;
                         }
                         KeyCode::Char(c) => {
-                            chars.push(c);
-                            self.content_display
-                                .draw_input_command(&mut self.out, String::from_iter(&chars))?;
+                            self.input_receiver.push_char(c);
+                            self.content_display.draw_input_command(
+                                &mut self.out,
+                                &self.input_receiver.get_chars_to_string(),
+                            )?;
                         }
                         KeyCode::Backspace => {
-                            chars.pop().expect("msg");
+                            self.input_receiver.pop_char();
+                            self.content_display.draw_input_command(
+                                &mut self.out,
+                                &self.input_receiver.get_chars_to_string(),
+                            )?;
                         }
                         _ => {}
                     }
                 }
                 self.out.flush()?;
             }
-            if String::from_iter(&chars).eq("exit") {
-                break;
+            if let Some(s) = self.input_receiver.get_to_string() {
+                if s == "exit" {
+                    break;
+                }
             }
         }
 

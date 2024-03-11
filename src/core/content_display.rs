@@ -1,11 +1,6 @@
 use std::io::{Result, Stdout};
 
-use crossterm::{
-    cursor::{MoveLeft, MoveRight, MoveTo},
-    style::Print,
-    terminal::Clear,
-    ExecutableCommand,
-};
+use crossterm::{cursor::MoveTo, style::Print, terminal::Clear, ExecutableCommand};
 
 pub struct Cursor {
     x: usize,
@@ -29,7 +24,7 @@ impl Cursor {
 }
 
 pub struct ContentDisplay {
-    cursor: Cursor,
+    pub cursor: Cursor,
 }
 
 impl ContentDisplay {
@@ -39,13 +34,22 @@ impl ContentDisplay {
         }
     }
 
-    pub fn draw_input_command(&mut self, out: &mut Stdout, content: String) -> Result<()> {
+    pub fn draw_enter(&mut self, out: &mut Stdout, y: usize) -> Result<()> {
+        self.cursor.move_cursor_y(y);
+        self.draw_cursor(out)?;
+        out.execute(Print(">"))?;
+        Ok(())
+    }
+
+    pub fn draw_input_command(&mut self, out: &mut Stdout, content: &str) -> Result<()> {
         out.execute(Clear(crossterm::terminal::ClearType::CurrentLine))?;
         self.cursor.move_cursor_x(0);
         self.draw_cursor(out)?;
+        out.execute(Print(">"))?;
         out.execute(Print(content))?;
         Ok(())
     }
+
     pub fn draw_cursor(&self, out: &mut Stdout) -> Result<()> {
         out.execute(MoveTo(self.cursor.x as u16, self.cursor.y as u16))?;
         Ok(())
