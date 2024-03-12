@@ -19,7 +19,7 @@ impl Input {
     pub fn insert(&mut self) -> Option<()> {
         self.contents
             .insert(self.index, String::from_iter(&self.chars));
-        self.index += 2;
+        self.index += 1;
         self.chars.clear();
         Some(())
     }
@@ -30,7 +30,7 @@ impl Input {
     }
     /// 获取输入完的的字符串(即将所有的字符切片转换为字符串)
     pub fn get_to_string(&self) -> Option<&String> {
-        self.contents.get(&(self.index - 2))
+        self.contents.get(&(self.index - 1))
     }
     /// 获取输入的命令的条数
     pub fn get_index(&self) -> u32 {

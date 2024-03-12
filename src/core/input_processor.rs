@@ -71,23 +71,15 @@ impl InputProcessor {
                 Ok(output) => {
                     if output.status.success() {
                         let result = &String::from_utf8_lossy(&output.stdout);
-
-                        self.content_display.draw_content(
-                            (self.input_receiver.get_index()) as usize,
-                            &result.replace("\n", " "),
-                        )?;
+                        self.content_display.draw_command_result(&result)?;
                     } else {
-                        self.content_display.draw_content(
-                            (self.input_receiver.get_index()) as usize,
-                            &String::from_utf8_lossy(&output.stderr),
-                        )?;
+                        self.content_display
+                            .draw_command_result(&String::from_utf8_lossy(&output.stderr))?;
                     }
                 }
                 Err(e) => {
-                    self.content_display.draw_content(
-                        (self.input_receiver.get_index()) as usize,
-                        &format!("command error: {}", e),
-                    )?;
+                    self.content_display
+                        .draw_command_result(&format!("command error: {}", e))?;
                 }
             }
         }

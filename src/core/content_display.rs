@@ -1,3 +1,4 @@
+use core::time;
 use std::io::{stdout, Result, Stdout, Write};
 
 use crossterm::{cursor::MoveTo, style::Print, terminal::Clear, ExecutableCommand};
@@ -47,17 +48,6 @@ impl ContentDisplay {
         Ok(())
     }
 
-    /// draw_enter: 绘制回车的命令
-    pub fn draw_enter(&mut self, y: usize, content: &str) -> Result<()> {
-        self.cursor.move_cursor_y(y - 1);
-        self.draw_cursor()?;
-        self.out.execute(Print(content))?;
-        self.cursor.move_cursor_y(y);
-        self.draw_cursor()?;
-        self.out.execute(Print(">"))?;
-        Ok(())
-    }
-
     /// draw_input_command: 绘制输入的命令
     pub fn draw_input_command(&mut self, content: &str) -> Result<()> {
         self.out
@@ -70,11 +60,18 @@ impl ContentDisplay {
     }
 
     /// draw_command_result: 绘制输出的结果
-    pub fn draw_content(&mut self, y: usize, content: &str) -> Result<()> {
-        self.cursor.move_cursor_y(y - 1);
+    pub fn draw_command_result(&mut self, content: &str) -> Result<()> {
+        self.cursor.move_cursor_y(self.cursor.y + 1);
         self.draw_cursor()?;
-        self.out.execute(Print(content))?;
-        self.cursor.move_cursor_y(y);
+
+        let trim_end = content.trim_end_matches("\n");
+        for ele in String::from(trim_end).split("\n") {
+            self.cursor.move_cursor_y(self.cursor.y + 1);
+            self.out.execute(Print(ele))?;
+            self.draw_cursor()?;
+        }
+
+        self.cursor.move_cursor_y(self.cursor.y + 1);
         self.draw_cursor()?;
         self.out.execute(Print(">"))?;
         Ok(())
