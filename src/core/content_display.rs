@@ -69,6 +69,17 @@ impl ContentDisplay {
         Ok(())
     }
 
+    /// draw_command_result: 绘制输出的结果
+    pub fn draw_content(&mut self, y: usize, content: &str) -> Result<()> {
+        self.cursor.move_cursor_y(y - 1);
+        self.draw_cursor()?;
+        self.out.execute(Print(content))?;
+        self.cursor.move_cursor_y(y);
+        self.draw_cursor()?;
+        self.out.execute(Print(">"))?;
+        Ok(())
+    }
+
     /// draw_enter: 绘制终端
     pub fn draw_cursor(&mut self) -> Result<()> {
         self.out

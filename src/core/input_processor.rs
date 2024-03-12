@@ -1,4 +1,4 @@
-use std::io::Result;
+use std::{io::Result, process::Command};
 
 use super::{content_display::ContentDisplay, input_receiver};
 
@@ -41,14 +41,8 @@ impl InputProcessor {
 
     /// enter_handler: 处理回车事件
     pub fn enter_handler(&mut self) -> Result<&str> {
-        self.input_receiver.insert();
-        self.content_display.draw_enter(
-            (self.input_receiver.get_index()) as usize,
-            &self
-                .input_receiver
-                .get_to_string()
-                .expect("get input command error"),
-        )?;
+        self.input_receiver.insert(); // 保存输入的字符串
+        self.run_command()?;
         Ok("break")
     }
 
@@ -66,5 +60,38 @@ impl InputProcessor {
         self.content_display
             .draw_input_command(&self.input_receiver.get_chars_to_string())?;
         Ok("proceeed")
+    }
+
+    /// 执行命令
+    pub fn run_command(&mut self) -> Result<()> {
+        if let Some(command_string) = self.input_receiver.get_to_string() {
+            let output = Command::new("sh").arg("-c").arg(command_string).output();
+
+            match output {
+                Ok(output) => {
+                    if output.status.success() {
+                        let result = &String::from_utf8_lossy(&output.stdout);
+
+                        self.content_display.draw_content(
+                            (self.input_receiver.get_index()) as usize,
+                            &result.replace("\n", " "),
+                        )?;
+                    } else {
+                        self.content_display.draw_content(
+                            (self.input_receiver.get_index()) as usize,
+                            &String::from_utf8_lossy(&output.stderr),
+                        )?;
+                    }
+                }
+                Err(e) => {
+                    self.content_display.draw_content(
+                        (self.input_receiver.get_index()) as usize,
+                        &format!("command error: {}", e),
+                    )?;
+                }
+            }
+        }
+
+        Ok(())
     }
 }
