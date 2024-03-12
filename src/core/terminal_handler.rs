@@ -1,45 +1,29 @@
-use std::io::{self, Stdout, Write};
-
 use crossterm::{
-    event::{read, Event, KeyCode},
-    terminal::{
-        disable_raw_mode, enable_raw_mode, Clear, EnterAlternateScreen, LeaveAlternateScreen,
-    },
-    ExecutableCommand,
+    event::{read, Event},
+    terminal::{disable_raw_mode, enable_raw_mode},
 };
 
-use super::{content_display::ContentDisplay, input_receiver};
+use super::input_processor;
 
 pub struct Terminal {
-    pub out: Stdout,
-    pub input_receiver: input_receiver::Input,
-    pub content_display: ContentDisplay,
+    pub input_processor: input_processor::InputProcessor,
 }
 
 impl Terminal {
     pub fn new() -> Self {
-        let out = io::stdout();
-        let input_receiver = input_receiver::Input::new();
-        let content_display = ContentDisplay::new();
-
         Self {
-            out,
-            input_receiver,
-            content_display,
+            input_processor: input_processor::InputProcessor::new(),
         }
     }
 
     fn run_before(&mut self) -> std::io::Result<()> {
         enable_raw_mode()?;
-        self.out.execute(EnterAlternateScreen)?;
-        self.content_display.draw_input_command(&mut self.out, "")?;
+        self.input_processor.display().clear_screen(">")?;
         Ok(())
     }
 
     fn run_after(&mut self) -> std::io::Result<()> {
-        self.out.execute(LeaveAlternateScreen)?;
-        self.out
-            .execute(Clear(crossterm::terminal::ClearType::All))?;
+        self.input_processor.display().clear_screen("Goodbye!")?;
         disable_raw_mode()?;
         Ok(())
     }
@@ -50,39 +34,18 @@ impl Terminal {
         loop {
             loop {
                 if let Event::Key(key_event) = read()? {
-                    match key_event.code {
-                        KeyCode::Enter => {
-                            self.input_receiver.insert();
-                            self.content_display.draw_enter(
-                                &mut self.out,
-                                (self.input_receiver.get_index()) as usize,
-                                &self
-                                    .input_receiver
-                                    .get_to_string()
-                                    .expect("get input command error"),
-                            )?;
-                            break;
+                    match self.input_processor.processor(key_event) {
+                        Ok(code) => {
+                            if code == "break" {
+                                break;
+                            }
                         }
-                        KeyCode::Char(c) => {
-                            self.input_receiver.push_char(c);
-                            self.content_display.draw_input_command(
-                                &mut self.out,
-                                &self.input_receiver.get_chars_to_string(),
-                            )?;
-                        }
-                        KeyCode::Backspace => {
-                            self.input_receiver.pop_char();
-                            self.content_display.draw_input_command(
-                                &mut self.out,
-                                &self.input_receiver.get_chars_to_string(),
-                            )?;
-                        }
-                        _ => {}
+                        Err(_) => break,
                     }
                 }
-                self.out.flush()?;
+                self.input_processor.display().flush_screen()?;
             }
-            if let Some(s) = self.input_receiver.get_to_string() {
+            if let Some(s) = self.input_processor.receiver().get_to_string() {
                 if s == "exit" {
                     break;
                 }

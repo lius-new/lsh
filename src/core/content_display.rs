@@ -1,4 +1,4 @@
-use std::io::{Result, Stdout};
+use std::io::{stdout, Result, Stdout, Write};
 
 use crossterm::{cursor::MoveTo, style::Print, terminal::Clear, ExecutableCommand};
 
@@ -24,40 +24,61 @@ impl Cursor {
 }
 
 pub struct ContentDisplay {
+    out: Stdout,
     pub cursor: Cursor,
 }
 
 impl ContentDisplay {
     pub fn new() -> Self {
         Self {
+            out: stdout(),
             cursor: Cursor::new(),
         }
     }
 
+    /// clear_screen: 清空屏幕
+    /// 提供一个字符串，在清空屏幕后唯一显示的就是该字符串
+    pub fn clear_screen(&mut self, content: &str) -> Result<()> {
+        self.out
+            .execute(Clear(crossterm::terminal::ClearType::All))?;
+        self.cursor.move_cursor(0, 0);
+        self.draw_cursor()?;
+        self.out.execute(Print(content))?;
+        Ok(())
+    }
+
     /// draw_enter: 绘制回车的命令
-    pub fn draw_enter(&mut self, out: &mut Stdout, y: usize, content: &str) -> Result<()> {
+    pub fn draw_enter(&mut self, y: usize, content: &str) -> Result<()> {
         self.cursor.move_cursor_y(y - 1);
-        self.draw_cursor(out)?;
-        out.execute(Print(content))?;
+        self.draw_cursor()?;
+        self.out.execute(Print(content))?;
         self.cursor.move_cursor_y(y);
-        self.draw_cursor(out)?;
-        out.execute(Print(">"))?;
+        self.draw_cursor()?;
+        self.out.execute(Print(">"))?;
         Ok(())
     }
 
     /// draw_input_command: 绘制输入的命令
-    pub fn draw_input_command(&mut self, out: &mut Stdout, content: &str) -> Result<()> {
-        out.execute(Clear(crossterm::terminal::ClearType::CurrentLine))?;
+    pub fn draw_input_command(&mut self, content: &str) -> Result<()> {
+        self.out
+            .execute(Clear(crossterm::terminal::ClearType::CurrentLine))?;
         self.cursor.move_cursor_x(0);
-        self.draw_cursor(out)?;
-        out.execute(Print(">"))?;
-        out.execute(Print(content))?;
+        self.draw_cursor()?;
+        self.out.execute(Print(">"))?;
+        self.out.execute(Print(content))?;
         Ok(())
     }
 
     /// draw_enter: 绘制终端
-    pub fn draw_cursor(&self, out: &mut Stdout) -> Result<()> {
-        out.execute(MoveTo(self.cursor.x as u16, self.cursor.y as u16))?;
+    pub fn draw_cursor(&mut self) -> Result<()> {
+        self.out
+            .execute(MoveTo(self.cursor.x as u16, self.cursor.y as u16))?;
+        Ok(())
+    }
+
+    /// flush_screen: 刷新屏幕
+    pub fn flush_screen(&mut self) -> Result<()> {
+        self.out.flush()?;
         Ok(())
     }
 }
