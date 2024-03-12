@@ -19,7 +19,7 @@ impl Input {
     pub fn insert(&mut self) -> Option<()> {
         self.contents
             .insert(self.index, String::from_iter(&self.chars));
-        self.index += 1;
+        self.index += 2;
         self.chars.clear();
         Some(())
     }
@@ -30,7 +30,7 @@ impl Input {
     }
     /// 获取输入完的的字符串(即将所有的字符切片转换为字符串)
     pub fn get_to_string(&self) -> Option<&String> {
-        self.contents.get(&(self.index - 1))
+        self.contents.get(&(self.index - 2))
     }
     /// 获取输入的命令的条数
     pub fn get_index(&self) -> u32 {
@@ -40,12 +40,31 @@ impl Input {
     pub fn push_char(&mut self, c: char) {
         self.chars.push(c)
     }
-    ///删除输入的最后一个字符
-    pub fn pop_char(&mut self) -> char {
-        self.chars.pop().expect("pop char error")
+    ///删除输入的最后一个字符, 不管是否删除成功
+    pub fn pop_char(&mut self) {
+        match self.chars.pop() {
+            Some(_) => (),
+            None => (),
+        }
     }
     ///删除输入的指定索引的字符
     pub fn remove_char(&mut self, index: usize) -> char {
         self.chars.remove(index)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_vec_pop() {
+        let mut v = Vec::<String>::new();
+        // v.pop().expect("this error");
+        v.pop();
+    }
+
+    #[test]
+    fn test_vec_to_string() {
+        let v = Vec::<String>::new();
+        let _s = String::from_iter(v);
     }
 }

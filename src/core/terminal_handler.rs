@@ -56,6 +56,10 @@ impl Terminal {
                             self.content_display.draw_enter(
                                 &mut self.out,
                                 (self.input_receiver.get_index()) as usize,
+                                &self
+                                    .input_receiver
+                                    .get_to_string()
+                                    .expect("get input command error"),
                             )?;
                             break;
                         }
