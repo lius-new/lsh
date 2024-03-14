@@ -1,4 +1,3 @@
-use core::time;
 use std::io::{stdout, Result, Stdout, Write};
 
 use crossterm::{cursor::MoveTo, style::Print, terminal::Clear, ExecutableCommand};
